@@ -4,9 +4,9 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import GoogleProvider from "next-auth/providers/google"
 import { NextApiRequest, NextApiResponse } from "next/types"
 
-const API_URL = "http://127.0.0.1:8000/api/auth/login"
+const API_URL = "http://127.0.0.1:8000/api/login"
 
-export default async function auth(req: NextApiRequest, res: NextApiResponse) {
+async function auth(req: NextApiRequest, res: NextApiResponse) {
   const providers = [
     CredentialsProvider({
         // The name to display on the sign in form (e.g. 'Sign in with...')
@@ -28,13 +28,18 @@ export default async function auth(req: NextApiRequest, res: NextApiResponse) {
           // (i.e., the request IP address)
           const res = await fetch(API_URL, {
             method: 'POST',
-            body: JSON.stringify(credentials),
+            body: JSON.stringify({
+                email : credentials?.username,
+                password: credentials?.password
+            }),
             headers: { "Content-Type": "application/json", "Accept": "application/json" }
           })
-          const user = await res.json()
+          const data = await res.json()
     
           // If no error and we have user data, return it
-          if (res.ok && user) {
+          if (res.ok && data) {
+            let user = data.user;
+                user.access_token = data.access_token;
             return user
           }
           // Return null if user data could not be retrieved
@@ -50,12 +55,14 @@ export default async function auth(req: NextApiRequest, res: NextApiResponse) {
         strategy: "jwt"
     },
     pages: {
-        signIn: '/auth/signin',
+        signIn: '/auth/login',
         signOut: '/auth/signout',
-        error: '/auth/error', // Error code passed in query string as ?error=
-        verifyRequest: '/auth/verify-request', // (used for check email message)
-        newUser: '/auth/new-user' // New users will be directed here on first sign in (leave the property out if not of interest)
+        error: '/auth/login', // Error code passed in query string as ?error=
+        //verifyRequest: '/auth/verify-request', // (used for check email message)
+       // newUser: '/auth/new-user' // New users will be directed here on first sign in (leave the property out if not of interest)
     }
   })
 }
+
+export { auth as GET, auth as POST }
 
